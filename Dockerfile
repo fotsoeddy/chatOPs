@@ -2,16 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies and ssh client
+# Install dependencies and sshpass
+ARG INSTALL_SSHPASS=no
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        sshpass \
+        openssh-client \
+        && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-client && rm -rf /var/lib/apt/lists/*
 
-# Copy project
+# Copy project files
 COPY . .
-
-# Make scripts executable
-RUN chmod +x scripts/*.sh
 
 # Expose FastAPI port
 EXPOSE 8100
