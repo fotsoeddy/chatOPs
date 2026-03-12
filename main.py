@@ -6,6 +6,7 @@ app = FastAPI()
 
 # Only your Telegram ID can use the bot
 AUTHORIZED_USERS = [2139237822]  # Replace with your Telegram user ID
+AUTHORIZED_DOMAINS = ["chatop.nitypulse.com"]
 
 # Simple command router
 COMMANDS = {
