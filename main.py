@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 import subprocess
 import os
+import requests
 from dotenv import load_dotenv
 
 # Load .env file
@@ -27,6 +28,17 @@ COMMANDS = {
 }
 
 # ===========================
+# UTILITY: Send message to Telegram
+# ===========================
+def send_telegram_message(chat_id: int, text: str):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    requests.post(url, json=payload)
+
+# ===========================
 # ROOT ENDPOINT (for testing)
 # ===========================
 @app.get("/")
@@ -49,11 +61,29 @@ async def telegram_webhook(req: Request):
 
     command_to_run = COMMANDS.get(text)
     if not command_to_run:
-        return {"status": "unknown command", "message": f"Command '{text}' not recognized"}
+        send_telegram_message(user_id, f"❌ Command '{text}' not recognized")
+        return {"status": "unknown command"}
 
+    # Special handling for deploy_globalsoft to stream logs progressively
+    if text == "deploy globalsoft":
+        send_telegram_message(user_id, "🚀 Starting deployment of GlobalSoft...")
+        process = subprocess.Popen(
+            command_to_run, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        # Stream logs line by line
+        for line in process.stdout:
+            if line.strip():  # skip empty lines
+                send_telegram_message(user_id, f"📄 {line.strip()}")
+        process.wait()
+        send_telegram_message(user_id, "✅ Deployment finished.")
+        return {"status": "success", "message": "Deployment finished."}
+
+    # For normal commands
     try:
-        output = subprocess.check_output(command_to_run, shell=True, stderr=subprocess.STDOUT)
-        return {"status": "success", "output": output.decode()}
+        output = subprocess.check_output(command_to_run, shell=True, stderr=subprocess.STDOUT, text=True)
+        send_telegram_message(user_id, f"✅ Command executed successfully:\n{output}")
+        return {"status": "success", "output": output}
     except subprocess.CalledProcessError as e:
-        error_output = e.output.decode() if e.output else str(e)
+        error_output = e.output if e.output else str(e)
+        send_telegram_message(user_id, f"❌ Error executing command:\n{error_output}")
         return {"status": "error", "output": error_output}
