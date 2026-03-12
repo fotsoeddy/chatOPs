@@ -16,10 +16,10 @@ git pull || echo "⚠️ Git pull failed or no repo detected, skipping."
 
 # Stop existing containers
 echo "📦 Stopping existing containers..."
-docker-compose down
+docker compose down
 
 # Rebuild and start containers
 echo "📦 Rebuilding and starting containers..."
-docker-compose up -d --build
+docker compose up -d --build
 
 echo "✅ Deployment complete!"
