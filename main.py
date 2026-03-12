@@ -1,14 +1,19 @@
 from fastapi import FastAPI, Request
 import subprocess
+import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 app = FastAPI()
 
 # ===========================
 # CONFIGURATION
 # ===========================
-BOT_TOKEN = "8510147575:AAFggKrM4zNP9sEIXfS5imQssIRJG1H-E0w"
-AUTHORIZED_USERS = [2139237822]  # Your Telegram user ID
-AUTHORIZED_DOMAINS = ["chatop.nitypulse.com"]  # Optional check
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+AUTHORIZED_USERS = [int(os.getenv("AUTHORIZED_USER"))]
+AUTHORIZED_DOMAINS = [os.getenv("DOMAIN_NAME")]
 
 # ===========================
 # COMMANDS
@@ -35,25 +40,20 @@ async def root():
 async def telegram_webhook(req: Request):
     data = await req.json()
     
-    # Extract Telegram message
     message = data.get("message", {})
     user_id = message.get("from", {}).get("id")
     text = message.get("text", "").lower().strip()
 
-    # Check if user is authorized
     if user_id not in AUTHORIZED_USERS:
         return {"status": "unauthorized"}
 
-    # Find the command
     command_to_run = COMMANDS.get(text)
     if not command_to_run:
         return {"status": "unknown command", "message": f"Command '{text}' not recognized"}
 
     try:
-        # Execute the command
         output = subprocess.check_output(command_to_run, shell=True, stderr=subprocess.STDOUT)
-        result = output.decode()
-        return {"status": "success", "output": result}
+        return {"status": "success", "output": output.decode()}
     except subprocess.CalledProcessError as e:
         error_output = e.output.decode() if e.output else str(e)
         return {"status": "error", "output": error_output}

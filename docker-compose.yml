@@ -4,6 +4,8 @@ services:
   chatops_bot:
     build: .
     container_name: chatops_bot
+    env_file:
+      - .env
     ports:
       - "8100:8100"
     volumes:
