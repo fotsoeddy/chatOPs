@@ -1,16 +1,22 @@
 #!/bin/bash
-set -e  # Stop if any command fails
+set -e  # Exit if any command fails
 
-echo "📡 Going to GlobalSoft folder..."
-cd /var/www/global-soft
+# GlobalSoft server path (where docker-compose.yml lives)
+GS_PATH="/var/www/global-soft"
 
-echo "📥 Pull latest code..."
-git pull origin main
+echo "📡 Navigating to GlobalSoft folder..."
+cd $GS_PATH || { echo "❌ GlobalSoft folder not found!"; exit 1; }
 
-echo "🛑 Bring down existing containers..."
-docker compose down
+# Pull latest code from Git
+echo "📥 Pulling latest code from Git..."
+git pull || echo "⚠️ Git pull failed or no repo detected, skipping."
 
-echo "📦 Build and restart containers..."
-docker compose up -d --build
+# Stop existing containers
+echo "📦 Stopping existing containers..."
+docker-compose down
 
-echo "✅ Deployment done!"
+# Rebuild and start containers
+echo "📦 Rebuilding and starting containers..."
+docker-compose up -d --build
+
+echo "✅ Deployment complete!"
