@@ -16,15 +16,20 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 AUTHORIZED_USERS = [int(os.getenv("AUTHORIZED_USER"))]
 AUTHORIZED_DOMAINS = [os.getenv("DOMAIN_NAME")]
 
+# SSH info for the host where GlobalSoft runs
+SSH_USER = os.getenv("SSH_USER")
+SSH_HOST = os.getenv("SSH_HOST")
+DEPLOY_SCRIPT_PATH = os.getenv("DEPLOY_SCRIPT_PATH")
+
 # ===========================
 # COMMANDS
 # ===========================
 COMMANDS = {
-    "deploy globalsoft": "bash scripts/deploy_globalsoft.sh",
-    "restart globalsoft": "docker restart globalsoft_web",
-    "docker ps": "docker ps",
-    "logs globalsoft": "docker logs globalsoft_web --tail 20",
-    "server status": "uptime"
+    "deploy globalsoft": f"ssh {SSH_USER}@{SSH_HOST} 'bash {DEPLOY_SCRIPT_PATH}'",
+    "restart globalsoft": f"ssh {SSH_USER}@{SSH_HOST} 'docker restart globalsoft_web_prod'",
+    "docker ps": f"ssh {SSH_USER}@{SSH_HOST} 'docker ps'",
+    "logs globalsoft": f"ssh {SSH_USER}@{SSH_HOST} 'docker logs globalsoft_web_prod --tail 20'",
+    "server status": f"ssh {SSH_USER}@{SSH_HOST} 'uptime'"
 }
 
 # ===========================
@@ -66,16 +71,16 @@ async def telegram_webhook(req: Request):
 
     # Special handling for deploy_globalsoft to stream logs progressively
     if text == "deploy globalsoft":
-        send_telegram_message(user_id, "🚀 Starting deployment of GlobalSoft...")
+        send_telegram_message(user_id, "🚀 Starting deployment of GlobalSoft on host...")
         process = subprocess.Popen(
             command_to_run, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
         # Stream logs line by line
         for line in process.stdout:
-            if line.strip():  # skip empty lines
+            if line.strip():
                 send_telegram_message(user_id, f"📄 {line.strip()}")
         process.wait()
-        send_telegram_message(user_id, "✅ Deployment finished.")
+        send_telegram_message(user_id, "✅ Deployment finished on host.")
         return {"status": "success", "message": "Deployment finished."}
 
     # For normal commands
