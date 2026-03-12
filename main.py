@@ -1,14 +1,18 @@
 from fastapi import FastAPI, Request
 import subprocess
-import os
 
 app = FastAPI()
 
-# Only your Telegram ID can use the bot
-AUTHORIZED_USERS = [2139237822]  # Replace with your Telegram user ID
-AUTHORIZED_DOMAINS = ["chatop.nitypulse.com"]
+# ===========================
+# CONFIGURATION
+# ===========================
+BOT_TOKEN = "8510147575:AAFggKrM4zNP9sEIXfS5imQssIRJG1H-E0w"
+AUTHORIZED_USERS = [2139237822]  # Your Telegram user ID
+AUTHORIZED_DOMAINS = ["chatop.nitypulse.com"]  # Optional check
 
-# Simple command router
+# ===========================
+# COMMANDS
+# ===========================
 COMMANDS = {
     "deploy globalsoft": "bash scripts/deploy_globalsoft.sh",
     "restart globalsoft": "docker restart globalsoft_web",
@@ -17,25 +21,39 @@ COMMANDS = {
     "server status": "uptime"
 }
 
+# ===========================
+# ROOT ENDPOINT (for testing)
+# ===========================
+@app.get("/")
+async def root():
+    return {"message": "ChatOps Bot is running ✅"}
+
+# ===========================
+# TELEGRAM WEBHOOK
+# ===========================
 @app.post("/webhook")
 async def telegram_webhook(req: Request):
     data = await req.json()
     
-    # Telegram message data
+    # Extract Telegram message
     message = data.get("message", {})
     user_id = message.get("from", {}).get("id")
-    text = message.get("text", "").lower()
+    text = message.get("text", "").lower().strip()
 
+    # Check if user is authorized
     if user_id not in AUTHORIZED_USERS:
         return {"status": "unauthorized"}
 
+    # Find the command
     command_to_run = COMMANDS.get(text)
-
     if not command_to_run:
         return {"status": "unknown command", "message": f"Command '{text}' not recognized"}
 
     try:
+        # Execute the command
         output = subprocess.check_output(command_to_run, shell=True, stderr=subprocess.STDOUT)
-        return {"status": "success", "output": output.decode()}
+        result = output.decode()
+        return {"status": "success", "output": result}
     except subprocess.CalledProcessError as e:
-        return {"status": "error", "output": e.output.decode()}
+        error_output = e.output.decode() if e.output else str(e)
+        return {"status": "error", "output": error_output}
