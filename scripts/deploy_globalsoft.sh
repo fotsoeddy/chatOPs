@@ -1,11 +1,14 @@
 #!/bin/bash
 set -e  # Exit if any command fails
 
+# Start from home directory to avoid relative path issues
+cd ~ || { echo "❌ Cannot go to home directory"; exit 1; }
+
 # GlobalSoft server path (where docker-compose.yml lives)
 GS_PATH="/var/www/global-soft"
 
 echo "📡 Navigating to GlobalSoft folder..."
-cd $GS_PATH || { echo "❌ GlobalSoft folder not found!"; exit 1; }
+cd $GS_PATH || { echo "❌ GlobalSoft folder not found at $GS_PATH"; exit 1; }
 
 # Pull latest code from Git
 echo "📥 Pulling latest code from Git..."
